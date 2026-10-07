@@ -1,0 +1,30 @@
+name: validate
+
+# Reusable workflow: the consuming repository calls it with
+#   uses: Scrap-Node/toolkit/.github/workflows/validate.yml@<tag>
+# and the checks come from the toolkit submodule it pins.
+on:
+  workflow_call:
+    inputs:
+      toolkit-path:
+        description: Chemin du toolkit dans le dépôt appelant.
+        type: string
+        default: toolkit
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Outils de validation
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck python3-yaml
+
+      - name: Contrôles
+        env:
+          TOOLKIT_PATH: ${{ inputs.toolkit-path }}
+        run: '"$TOOLKIT_PATH/validate/validate.sh"'

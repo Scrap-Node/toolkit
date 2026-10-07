@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Server-side branch protection needs a paid plan on a private repository, so
+# the gate lives here instead. Bypass with --no-verify when the failure is
+# unrelated to the change.
+#
+# Install from the consuming repository: git config core.hooksPath <toolkit>/hooks
+#
+# The checks come from the toolkit checked out in the working copy, not from
+# the version pinned by the pushed commit: a throwaway worktree does not check
+# out submodules.
+set -euo pipefail
+
+validate="$(cd "$(dirname "$0")/.." && pwd)/validate/validate.sh"
+
+ZERO=0000000000000000000000000000000000000000
+status=0
+work=""
+
+cleanup() { [ -n "$work" ] && git worktree remove --force "$work" 2>/dev/null; return 0; }
+trap cleanup EXIT
+
+# git feeds one line per ref being pushed: <local ref> <local sha> <remote ref>
+# <remote sha>. Each commit is validated in a throwaway worktree rather than in
+# the working tree, which would check uncommitted changes that are not being
+# sent, and skip committed ones that are.
+while read -r _ local_sha _ _; do
+  [ "$local_sha" = "$ZERO" ] && continue   # branch deletion, nothing to check
+
+  work=$(mktemp -d) && rmdir "$work"
+  git worktree add --detach --quiet "$work" "$local_sha"
+
+  "$validate" "$work" || status=1
+
+  git worktree remove --force "$work"
+  work=""
+done
+
+exit "$status"

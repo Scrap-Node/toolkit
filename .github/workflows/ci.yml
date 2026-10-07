@@ -1,0 +1,77 @@
+name: CI
+
+# Public repository: GitHub-hosted runners only. A self-hosted runner attached
+# here would run any pull request's code on the host.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
+    with:
+      toolkit-path: "."
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Outils
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck python3-yaml
+
+      - name: Tests
+        run: make test
+
+  # The bootstrap is what rebuilds a host after a disaster: it runs here, on
+  # every supported Debian release, twice to prove it is idempotent.
+  bootstrap:
+    strategy:
+      fail-fast: false
+      matrix:
+        debian: [bookworm, trixie]
+    runs-on: ubuntu-latest
+    container: debian:${{ matrix.debian }}
+    steps:
+      # git first: without it, checkout downloads a tarball and there is no
+      # repository to clone from.
+      - name: Prérequis de l'image
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq git sudo
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Utilisateur normal avec sudo, comme sur un hôte
+        run: |
+          useradd -m admin
+          echo 'admin ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/admin
+          cp -r "$GITHUB_WORKSPACE" /srv/source
+          chown -R admin:admin /srv/source
+          sudo -u admin git -C /srv/source checkout -q -B main
+
+      - name: Premier passage
+        run: sudo -u admin env REPO=/srv/source DEST=/opt/source TAILSCALE=1 bash /srv/source/bootstrap/debian.sh
+
+      - name: Second passage
+        run: sudo -u admin env REPO=/srv/source DEST=/opt/source TAILSCALE=1 bash /srv/source/bootstrap/debian.sh
+
+      - name: Résultat
+        run: |
+          sops --version --disable-version-check | grep -F "$(sed -n 's/^SOPS_VERSION=//p' bootstrap/debian.sh)"
+          docker --version
+          docker compose version
+          tailscale version
+          id -nG admin | grep -qw docker
+          test "$(stat -c %U /opt/source)" = admin
+          test -d /opt/source/.git
+
+      - name: sops-files sur l'hôte amorcé
+        run: |
+          apt-get install -y -qq jq
+          sudo -u admin bash /srv/source/tests/sops-files.sh

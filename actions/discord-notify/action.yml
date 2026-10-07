@@ -1,0 +1,41 @@
+name: Notification Discord
+description: Envoie le résultat d'un workflow dans un salon Discord, sous forme d'embed.
+
+inputs:
+  webhook-url:
+    description: URL du webhook, toujours depuis un secret.
+    required: true
+  status:
+    description: "success, failure, cancelled ou skipped : typiquement job.status ou needs.<job>.result."
+    required: true
+  title:
+    description: Titre de l'embed. Par défaut, le nom du workflow.
+    default: ""
+  description:
+    description: Texte libre en Markdown Discord, tronqué aux limites de Discord.
+    default: ""
+  fields:
+    description: 'Champs ajoutés aux champs par défaut, en tableau JSON : [{"name": "…", "value": "…", "inline": true}].'
+    default: "[]"
+  url:
+    description: Lien du titre. Par défaut, l'exécution du workflow.
+    default: ""
+  dry-run:
+    description: "true : affiche la charge utile au lieu de l'envoyer."
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    # Inputs reach the script through the environment, never interpolated into
+    # it: a branch name or a commit message cannot inject shell.
+    - shell: bash
+      env:
+        WEBHOOK_URL: ${{ inputs.webhook-url }}
+        STATUS: ${{ inputs.status }}
+        TITLE: ${{ inputs.title }}
+        DESCRIPTION: ${{ inputs.description }}
+        FIELDS: ${{ inputs.fields }}
+        LINK: ${{ inputs.url }}
+        DRY_RUN: ${{ inputs.dry-run }}
+      run: '"$GITHUB_ACTION_PATH/notify.sh"'
