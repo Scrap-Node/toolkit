@@ -27,8 +27,11 @@ check "commit court"             '.embeds[0].fields[] | select(.name == "Commit"
 check "pas de description vide"  '.embeds[0] | has("description") | not'
 
 echo "Limites de Discord"
+# Over every Discord limit, yet under the 128 KiB Linux allows for a single
+# environment variable, which is how the action passes its inputs.
 long=$(head -c 9000 /dev/zero | tr '\0' 'x')
-fields=$(jq -n --arg v "$long" '[range(30) | {name: "champ \(.)", value: $v}]')
+value=$(head -c 2000 /dev/zero | tr '\0' 'y')
+fields=$(jq -n --arg v "$value" '[range(30) | {name: "champ \(.)", value: $v}]')
 payload=$(STATUS=failure TITLE="$long" DESCRIPTION="$long" FIELDS="$fields" "$notify")
 check "titre ≤ 256"              '.embeds[0].title | length <= 256'
 check "25 champs au plus"        '.embeds[0].fields | length <= 25'
