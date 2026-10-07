@@ -15,13 +15,20 @@ jobs:
 
   tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
       - name: Outils
+        # Both usually ship with the runner image. apt, and its mirrors, only
+        # come in when one is missing.
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq shellcheck python3-yaml
+          if command -v shellcheck >/dev/null && python3 -c 'import yaml' 2>/dev/null; then
+            echo "shellcheck $(shellcheck --version | sed -n 's/^version: //p') et PyYAML déjà présents"
+          else
+            sudo apt-get -o Acquire::Retries=3 update -qq
+            sudo apt-get -o Acquire::Retries=3 install -y -qq shellcheck python3-yaml
+          fi
 
       - name: Tests
         run: make test
@@ -34,6 +41,7 @@ jobs:
       matrix:
         debian: [bookworm, trixie]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     container: debian:${{ matrix.debian }}
     steps:
       # git first: without it, checkout downloads a tarball and there is no
