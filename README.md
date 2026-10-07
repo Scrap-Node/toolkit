@@ -26,7 +26,7 @@ fait respecter la règle à chaque push et en CI.
 
 ```bash
 git submodule add https://github.com/Scrap-Node/toolkit.git toolkit
-git -C toolkit checkout v1.0.0
+git -C toolkit checkout v1.0.1
 ```
 
 Le sous-module épingle un commit : une nouvelle version du toolkit n'arrive
@@ -90,7 +90,7 @@ TOOLKIT_HOOKS_DIR := .githooks
 ```yaml
 jobs:
   validate:
-    uses: Scrap-Node/toolkit/.github/workflows/validate.yml@v1.0.0
+    uses: Scrap-Node/toolkit/.github/workflows/validate.yml@v1.0.1
 ```
 
 ### Notification Discord
@@ -101,7 +101,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: Scrap-Node/toolkit/actions/discord-notify@v1.0.0
+      - uses: Scrap-Node/toolkit/actions/discord-notify@v1.0.1
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_CI }}
           status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
@@ -118,7 +118,7 @@ L'hôte doit fournir `curl` et `jq`. Pour qu'un échec d'envoi ne fasse pas
 ### Amorçage d'un hôte
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/Scrap-Node/toolkit/v1.0.0/bootstrap/debian.sh
+curl -fsSLO https://raw.githubusercontent.com/Scrap-Node/toolkit/v1.0.1/bootstrap/debian.sh
 REPO=git@github.com:<owner>/<repo>.git DEST=/opt/<repo> TAILSCALE=1 bash debian.sh
 ```
 
