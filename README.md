@@ -152,4 +152,7 @@ request y exécuterait son code.
 
 ## Licence
 
-MIT, voir `LICENSE`.
+Apache 2.0, voir `LICENSE` et `NOTICE`. La licence porte sur le code : elle ne
+cède ni le nom « Scrap », ni les logos, ni les autres signes distinctifs des
+projets Scrap Node. Les tags jusqu'à `v1.0.1` inclus ont été publiés sous MIT et
+le restent.
